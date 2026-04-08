@@ -1,6 +1,4 @@
-# =====================================================
 # Import Libraries
-# =====================================================
 
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -13,20 +11,16 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import A4
 
 
-# =====================================================
 # Page Config
-# =====================================================
 
 st.set_page_config(
-    page_title="Smart DNA Quality Analyzer",
+    page_title="Smart DNA Quality Analyzer 1.3",
     page_icon="🧬",
     layout="wide"
 )
 
 
-# =====================================================
 # Background Function
-# =====================================================
 
 def set_bg(image):
 
@@ -47,9 +41,7 @@ def set_bg(image):
     )
 
 
-# =====================================================
 # Tabs
-# =====================================================
 
 tabs = st.tabs([
 "🏠 Home",
@@ -62,21 +54,21 @@ tabs = st.tabs([
 ])
 
 
-# =====================================================
 # Home
-# =====================================================
 
 with tabs[0]:
 
     set_bg("background.jpg")
 
-    st.title("🧬 Smart DNA Quality Analyzer")
+    st.title("🧬 Smart DNA Quality Analyzer 1.3")
 
     st.markdown("""
 ### Bioinformatics DNA Quality Control Platform
 
-Smart DNA Quality Analyzer is developed for DNA sequencing 
-quality control and FASTQ data analysis.
+Smart DNA Quality Analyzer is a bioinformatics application 
+developed for DNA sequencing quality assessment and FASTQ 
+file analysis. This tool helps researchers and students 
+perform quality control before genomic analysis.
 
 ### Features
 
@@ -93,9 +85,7 @@ quality control and FASTQ data analysis.
 """)
 
 
-# =====================================================
 # Tool Section
-# =====================================================
 
 with tabs[1]:
 
@@ -176,6 +166,15 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         cleaned=[remove_adapter(s) for s in sequences]
 
 
+# Adapter Removal Result
+
+        st.subheader("Adapter Removal")
+
+        adapter_removed=sum([1 for s in sequences if "AGATCGGAAGAGC" in s])
+
+        st.write("Adapter Removed Reads:",adapter_removed)
+
+
 # Read Statistics
 
         st.subheader("Read Statistics")
@@ -214,9 +213,10 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.write("Average Quality Score:",round(avg_quality,2))
 
-        plt.figure()
-        plt.plot(scores)
+        plt.figure(figsize=(7,4))
+        plt.plot(scores,color="green")
         plt.title("Quality Score Distribution")
+        plt.tight_layout()
         plt.savefig("quality.png")
         st.pyplot(plt)
 
@@ -225,9 +225,10 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.subheader("Sequence Length Distribution")
 
-        plt.figure()
-        plt.hist(lengths)
+        plt.figure(figsize=(7,4))
+        plt.hist(lengths,color="orange")
         plt.title("Sequence Length Distribution")
+        plt.tight_layout()
         plt.savefig("length.png")
         st.pyplot(plt)
 
@@ -253,9 +254,13 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             G+=s.count("G")
             C+=s.count("C")
 
-        plt.figure()
-        plt.bar(["A","T","G","C"],[A,T,G,C])
+        plt.figure(figsize=(7,4))
+        plt.bar(["A","T","G","C"],
+        [A,T,G,C],
+        color=["blue","red","green","purple"])
+
         plt.title("Nucleotide Frequency")
+        plt.tight_layout()
         plt.savefig("nucleotide.png")
         st.pyplot(plt)
 
@@ -272,74 +277,7 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             st.write(v)
 
 
-# PDF Report
-
-        def generate_pdf():
-
-            styles=getSampleStyleSheet()
-
-            story=[]
-
-            story.append(
-            Paragraph("Smart DNA Quality Analyzer Report",
-            styles['Heading1'])
-            )
-
-            story.append(
-            Paragraph(f"Total Reads: {read_count}",
-            styles['Normal'])
-            )
-
-            story.append(
-            Paragraph(f"Average GC: {round(avg_gc,2)}",
-            styles['Normal'])
-            )
-
-            story.append(
-            Paragraph(f"Average Quality: {round(avg_quality,2)}",
-            styles['Normal'])
-            )
-
-            story.append(Spacer(1,20))
-
-            story.append(Image("quality.png",400,250))
-            story.append(Spacer(1,20))
-            story.append(Image("length.png",400,250))
-            story.append(Spacer(1,20))
-            story.append(Image("nucleotide.png",400,250))
-
-            story.append(PageBreak())
-
-            story.append(Paragraph("Variant Calling",styles['Heading2']))
-
-            for v in variants[:20]:
-                story.append(Paragraph(v,styles['Normal']))
-
-            buffer=io.BytesIO()
-
-            doc=SimpleDocTemplate(buffer,pagesize=A4)
-
-            doc.build(story)
-
-            pdf=buffer.getvalue()
-
-            buffer.close()
-
-            return pdf
-
-
-        pdf=generate_pdf()
-
-        st.download_button(
-        "Download Full PDF Report",
-        data=pdf,
-        file_name="DNA_Report.pdf"
-        )
-
-
-# =====================================================
 # About
-# =====================================================
 
 with tabs[2]:
 
@@ -348,17 +286,19 @@ with tabs[2]:
     st.title("About")
 
     st.write("""
-Smart DNA Quality Analyzer is a bioinformatics tool designed 
-for DNA sequencing quality assessment and mutation detection.
+Smart DNA Quality Analyzer is a bioinformatics application 
+developed for DNA sequencing quality assessment.
 
-The application helps researchers analyze sequencing data 
-and generate quality control reports.
+• Performs FASTQ file quality analysis  
+• Detects sequencing errors  
+• Removes adapter contamination  
+• Calculates GC content  
+• Identifies sequence variations  
+• Generates graphical reports  
 """)
 
 
-# =====================================================
 # Working
-# =====================================================
 
 with tabs[3]:
 
@@ -367,22 +307,16 @@ with tabs[3]:
     st.title("Working")
 
     st.write("""
-1 Upload FASTQ file  
-2 Adapter removal  
-3 GC content calculation  
-4 Quality score analysis  
-5 Sequence length distribution  
-6 Duplicate detection  
-7 Nucleotide frequency analysis  
-8 Graph generation  
-9 PDF report generation  
-10 Variant calling
+• Upload FASTQ file  
+• Extract DNA sequences  
+• Remove adapter sequences  
+• Perform quality analysis  
+• Detect variants  
+• Generate report  
 """)
 
 
-# =====================================================
 # Applications
-# =====================================================
 
 with tabs[4]:
 
@@ -392,17 +326,15 @@ with tabs[4]:
 
     st.write("""
 • DNA sequencing quality control  
-• Genomics research  
-• Mutation detection  
-• Clinical genomics  
-• Bioinformatics research  
-• NGS analysis  
+• Genomics research analysis  
+• Mutation detection studies  
+• Clinical genomics research  
+• Microbial genome analysis  
+• Bioinformatics learning tool  
 """)
 
 
-# =====================================================
 # Future Scope
-# =====================================================
 
 with tabs[5]:
 
@@ -412,16 +344,15 @@ with tabs[5]:
 
     st.write("""
 • Machine learning integration  
-• Multi-omics analysis  
+• Large scale NGS analysis  
 • Cloud deployment  
-• Real-time sequencing  
-• Genome annotation integration   
+• Multi sample comparison  
+• Advanced variant detection  
+• Real time sequencing analysis  
 """)
 
 
-# =====================================================
 # Team
-# =====================================================
 
 with tabs[6]:
 
@@ -432,11 +363,9 @@ with tabs[6]:
     st.subheader("Nupur Nisal")
     st.write("Bioinformatics Developer")
     st.write("3522511009@gmail.com")
-    st.markdown("[LinkedIn](https://www.linkedin.com/in/nupur-nisal-543b46313)")
 
     st.markdown("---")
 
     st.subheader("Vinita Salvi")
     st.write("Bioinformatics Analyst")
     st.write("3522511010@gmail.com")
-    st.markdown("[LinkedIn](https://www.linkedin.com/in/vinita-salvi27)")
