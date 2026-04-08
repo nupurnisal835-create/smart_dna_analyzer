@@ -14,7 +14,7 @@ from reportlab.lib.pagesizes import A4
 # Page Config
 
 st.set_page_config(
-    page_title="Smart DNA Quality Analyzer 1.3",
+    page_title="Smart DNA Quality Analyzer",
     page_icon="🧬",
     layout="wide"
 )
@@ -60,15 +60,10 @@ with tabs[0]:
 
     set_bg("background.jpg")
 
-    st.title("🧬 Smart DNA Quality Analyzer 1.3")
+    st.title("🧬 Smart DNA Quality Analyzer")
 
     st.markdown("""
-### Bioinformatics DNA Quality Control Platform
-
-Smart DNA Quality Analyzer is developed for DNA sequencing 
-quality control and FASTQ data analysis.
-
-Features
+Bioinformatics DNA Quality Control Platform
 
 Adapter Sequence Removal  
 GC Content Analysis  
@@ -79,12 +74,11 @@ Nucleotide Frequency Analysis
 Variant Calling  
 Read Statistics  
 Quality Control Graphs  
-FASTQ File Support  
-PDF Report Generation  
+PDF Report Generation
 """)
 
 
-# Tool Section
+# Tool
 
 with tabs[1]:
 
@@ -92,29 +86,12 @@ with tabs[1]:
 
     st.title("DNA Quality Analysis Tool")
 
-    option = st.radio(
-    "Select Input",
-    ["Upload FASTQ File","Use Demo Data"]
+    uploaded_file = st.file_uploader(
+    "Upload FASTQ File",
+    type=["fastq","fq"]
     )
 
-    uploaded_file=None
-
-    if option=="Upload FASTQ File":
-        uploaded_file=st.file_uploader(
-        "Upload FASTQ File",
-        type=["fastq","fq"]
-        )
-
-
-    demo_fastq="""@SEQ_1
-ATGCGTACGTAGCTAGATCGGAAGAGC
-+
-IIIIIIIIIIIIIIIIIIIIIIIIIII
-@SEQ_2
-ATGCGTACGTAGCTAGATCGGAAGAGC
-+
-IIIIIIIIIIIIIIIIIIIIIIIIIII
-"""
+    run = st.button("Run Analysis")
 
 
 # Adapter Removal
@@ -127,15 +104,12 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
     def variant_calling(seqs):
 
-        reference=seqs[0]
-        variants=[]
+        reference = seqs[0]
+        variants = []
 
         for seq in seqs:
-
             for i in range(min(len(seq),len(reference))):
-
                 if seq[i]!=reference[i]:
-
                     variants.append(
                     f"Position {i+1}: {reference[i]} → {seq[i]}"
                     )
@@ -145,22 +119,23 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
 # Processing
 
-    if uploaded_file or option=="Use Demo Data":
+    if run and uploaded_file:
 
-        if option=="Use Demo Data":
-            lines=demo_fastq.split("\n")
-        else:
-            lines=uploaded_file.read().decode().split("\n")
+        lines=uploaded_file.read().decode(
+        errors="ignore").splitlines()
 
         sequences=[]
         qualities=[]
 
-        for i in range(0,len(lines),4):
+        max_reads=10000
+
+        for i in range(0,min(len(lines),max_reads*4),4):
 
             if i+3<len(lines):
 
                 sequences.append(lines[i+1])
                 qualities.append(lines[i+3])
+
 
         cleaned=[remove_adapter(s) for s in sequences]
 
@@ -169,7 +144,8 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.subheader("Adapter Removal")
 
-        adapter_removed=sum([1 for s in sequences if "AGATCGGAAGAGC" in s])
+        adapter_removed=sum(
+        [1 for s in sequences if "AGATCGGAAGAGC" in s])
 
         st.write("Adapter Removed Reads:",adapter_removed)
 
@@ -179,6 +155,7 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         st.subheader("Read Statistics")
 
         read_count=len(cleaned)
+
         lengths=[len(s) for s in cleaned]
 
         st.write("Total Reads:",read_count)
@@ -191,10 +168,13 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.subheader("GC Content Analysis")
 
-        gc=[((s.count("G")+s.count("C"))/len(s))*100 for s in cleaned]
+        gc=[((s.count("G")+s.count("C"))/len(s))*100
+        for s in cleaned]
+
         avg_gc=np.mean(gc)
 
-        st.write("Average GC Content:",round(avg_gc,2))
+        st.write("Average GC Content:",
+        round(avg_gc,2))
 
 
 # Quality Score
@@ -208,35 +188,14 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         avg_quality=np.mean(scores)
 
-        st.write("Average Quality Score:",round(avg_quality,2))
+        st.write("Average Quality Score:",
+        round(avg_quality,2))
 
-        plt.figure(figsize=(4,2.5))
-        plt.plot(scores,color="green")
-        plt.title("Quality Score")
-        plt.tight_layout()
+        plt.figure(figsize=(5,3))
+        plt.plot(scores,color="blue")
+        plt.title("Quality Score Distribution")
         plt.savefig("quality.png")
         st.pyplot(plt)
-
-
-# Sequence Length
-
-        st.subheader("Sequence Length Distribution")
-
-        plt.figure(figsize=(4,2.5))
-        plt.hist(lengths,color="orange")
-        plt.title("Sequence Length")
-        plt.tight_layout()
-        plt.savefig("length.png")
-        st.pyplot(plt)
-
-
-# Duplicate Detection
-
-        st.subheader("Duplicate Detection")
-
-        duplicates=len(cleaned)-len(set(cleaned))
-
-        st.write("Duplicate Reads:",duplicates)
 
 
 # Nucleotide Frequency
@@ -251,13 +210,15 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             G+=s.count("G")
             C+=s.count("C")
 
-        plt.figure(figsize=(4,2.5))
-        plt.bar(["A","T","G","C"],
+        plt.figure(figsize=(5,3))
+
+        plt.bar(
+        ["A","T","G","C"],
         [A,T,G,C],
-        color=["blue","red","green","purple"])
+        color=["#4CAF50","#2196F3","#FF9800","#E91E63"]
+        )
 
         plt.title("Nucleotide Frequency")
-        plt.tight_layout()
         plt.savefig("nucleotide.png")
         st.pyplot(plt)
 
@@ -274,7 +235,7 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             st.write(v)
 
 
-# PDF Report
+# PDF
 
         def generate_pdf():
 
@@ -282,66 +243,20 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             story=[]
 
             story.append(
-            Paragraph("Smart DNA Quality Analyzer 1.3 Report",
+            Paragraph("Smart DNA Quality Analyzer Report",
             styles['Heading1'])
             )
 
-            story.append(Spacer(1,12))
-
-            story.append(Paragraph(
-            f"Adapter Removed Reads: {adapter_removed}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Total Reads: {read_count}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Minimum Length: {min(lengths)}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Maximum Length: {max(lengths)}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Average Length: {round(np.mean(lengths),2)}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Average GC Content: {round(avg_gc,2)}",
-            styles['Normal']))
-
-            story.append(Paragraph(
-            f"Average Quality Score: {round(avg_quality,2)}",
-            styles['Normal']))
-
-            story.append(Spacer(1,20))
+            story.append(Spacer(1,10))
 
             story.append(Image("quality.png",350,180))
-            story.append(Spacer(1,15))
-
-            story.append(Image("length.png",350,180))
-            story.append(Spacer(1,15))
-
+            story.append(Spacer(1,10))
             story.append(Image("nucleotide.png",350,180))
 
-            story.append(PageBreak())
-
-            story.append(Paragraph(
-            f"Duplicate Reads: {duplicates}",
-            styles['Normal']))
-
-            story.append(Spacer(1,15))
-
-            story.append(Paragraph("Variant Calling",
-            styles['Heading2']))
-
-            for v in variants[:20]:
-                story.append(Paragraph(v,styles['Normal']))
-
             buffer=io.BytesIO()
+
             doc=SimpleDocTemplate(buffer,pagesize=A4)
+
             doc.build(story)
 
             pdf=buffer.getvalue()
@@ -353,10 +268,9 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         pdf=generate_pdf()
 
         st.download_button(
-        "Download Full Report PDF",
+        "Download Full PDF Report",
         data=pdf,
-        file_name="Smart_DNA_Report.pdf",
-        mime="application/pdf"
+        file_name="DNA_Report.pdf"
         )
 
 
@@ -369,14 +283,12 @@ with tabs[2]:
     st.title("About")
 
     st.write("""
-Smart DNA Quality Analyzer is developed for DNA sequencing quality analysis.
-
-• FASTQ file quality analysis  
-• Adapter removal  
-• GC content calculation  
-• Variant detection  
-• Graph visualization  
-• Report generation  
+DNA sequencing quality analysis  
+FASTQ file processing  
+Adapter sequence removal  
+Variant detection  
+Graph visualization  
+Report generation
 """)
 
 
@@ -389,12 +301,12 @@ with tabs[3]:
     st.title("Working")
 
     st.write("""
-• Upload FASTQ file  
-• Extract sequences  
-• Remove adapters  
-• Perform analysis  
-• Detect variants  
-• Generate report  
+Upload FASTQ file  
+Run analysis  
+Adapter removal  
+Quality score calculation  
+Variant detection  
+Download report
 """)
 
 
@@ -407,12 +319,12 @@ with tabs[4]:
     st.title("Applications")
 
     st.write("""
-• DNA quality control  
-• Genomics research  
-• Mutation detection  
-• Clinical genomics  
-• Microbial genomics  
-• Bioinformatics learning  
+Genomics research  
+Mutation detection  
+Clinical genomics  
+DNA quality control  
+NGS data analysis  
+Bioinformatics learning
 """)
 
 
@@ -425,12 +337,12 @@ with tabs[5]:
     st.title("Future Scope")
 
     st.write("""
-• Machine learning integration  
-• Large scale NGS analysis  
-• Cloud deployment  
-• Multi sample comparison  
-• Advanced variant detection  
-• Real time sequencing  
+Machine learning integration  
+Cloud deployment  
+Large dataset analysis  
+Real time sequencing  
+Multi omics integration  
+Genome annotation
 """)
 
 
@@ -445,11 +357,15 @@ with tabs[6]:
     st.subheader("Nupur Nisal")
     st.write("Bioinformatics Developer")
     st.write("3522511009@gmail.com")
-    st.markdown("[LinkedIn](https://www.linkedin.com/in/nupur-nisal-543b46313)")
+    st.markdown(
+    "[LinkedIn](https://www.linkedin.com/in/nupur-nisal-543b46313)"
+    )
 
     st.markdown("---")
 
     st.subheader("Vinita Salvi")
     st.write("Bioinformatics Analyst")
     st.write("3522511010@gmail.com")
-    st.markdown("[LinkedIn](https://www.linkedin.com/in/vinita-salvi27)")
+    st.markdown(
+    "[LinkedIn](https://www.linkedin.com/in/vinita-salvi27)"
+    )
