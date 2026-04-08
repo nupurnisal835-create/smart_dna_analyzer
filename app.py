@@ -65,23 +65,22 @@ with tabs[0]:
     st.markdown("""
 ### Bioinformatics DNA Quality Control Platform
 
-Smart DNA Quality Analyzer is a bioinformatics application 
-developed for DNA sequencing quality assessment and FASTQ 
-file analysis. This tool helps researchers and students 
-perform quality control before genomic analysis.
+Smart DNA Quality Analyzer is developed for DNA sequencing 
+quality control and FASTQ data analysis.
 
-### Features
+Features
 
-• Adapter Sequence Removal  
-• GC Content Analysis  
-• Quality Score Analysis  
-• Sequence Length Distribution  
-• Duplicate Sequence Detection  
-• Nucleotide Frequency Analysis  
-• Variant Calling  
-• Read Statistics  
-• Quality Control Graphs  
-• PDF Report Generation  
+Adapter Sequence Removal  
+GC Content Analysis  
+Quality Score Analysis  
+Sequence Length Distribution  
+Duplicate Sequence Detection  
+Nucleotide Frequency Analysis  
+Variant Calling  
+Read Statistics  
+Quality Control Graphs  
+FASTQ File Support  
+PDF Report Generation  
 """)
 
 
@@ -101,7 +100,10 @@ with tabs[1]:
     uploaded_file=None
 
     if option=="Upload FASTQ File":
-        uploaded_file=st.file_uploader("Upload FASTQ File")
+        uploaded_file=st.file_uploader(
+        "Upload FASTQ File",
+        type=["fastq","fq"]
+        )
 
 
     demo_fastq="""@SEQ_1
@@ -126,7 +128,6 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
     def variant_calling(seqs):
 
         reference=seqs[0]
-
         variants=[]
 
         for seq in seqs:
@@ -151,7 +152,6 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         else:
             lines=uploaded_file.read().decode().split("\n")
 
-
         sequences=[]
         qualities=[]
 
@@ -162,11 +162,10 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
                 sequences.append(lines[i+1])
                 qualities.append(lines[i+3])
 
-
         cleaned=[remove_adapter(s) for s in sequences]
 
 
-# Adapter Removal Result
+# Adapter Removal
 
         st.subheader("Adapter Removal")
 
@@ -180,7 +179,6 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         st.subheader("Read Statistics")
 
         read_count=len(cleaned)
-
         lengths=[len(s) for s in cleaned]
 
         st.write("Total Reads:",read_count)
@@ -194,7 +192,6 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
         st.subheader("GC Content Analysis")
 
         gc=[((s.count("G")+s.count("C"))/len(s))*100 for s in cleaned]
-
         avg_gc=np.mean(gc)
 
         st.write("Average GC Content:",round(avg_gc,2))
@@ -213,9 +210,9 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.write("Average Quality Score:",round(avg_quality,2))
 
-        plt.figure(figsize=(7,4))
+        plt.figure(figsize=(4,2.5))
         plt.plot(scores,color="green")
-        plt.title("Quality Score Distribution")
+        plt.title("Quality Score")
         plt.tight_layout()
         plt.savefig("quality.png")
         st.pyplot(plt)
@@ -225,9 +222,9 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
 
         st.subheader("Sequence Length Distribution")
 
-        plt.figure(figsize=(7,4))
+        plt.figure(figsize=(4,2.5))
         plt.hist(lengths,color="orange")
-        plt.title("Sequence Length Distribution")
+        plt.title("Sequence Length")
         plt.tight_layout()
         plt.savefig("length.png")
         st.pyplot(plt)
@@ -254,7 +251,7 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             G+=s.count("G")
             C+=s.count("C")
 
-        plt.figure(figsize=(7,4))
+        plt.figure(figsize=(4,2.5))
         plt.bar(["A","T","G","C"],
         [A,T,G,C],
         color=["blue","red","green","purple"])
@@ -277,6 +274,92 @@ IIIIIIIIIIIIIIIIIIIIIIIIIII
             st.write(v)
 
 
+# PDF Report
+
+        def generate_pdf():
+
+            styles=getSampleStyleSheet()
+            story=[]
+
+            story.append(
+            Paragraph("Smart DNA Quality Analyzer 1.3 Report",
+            styles['Heading1'])
+            )
+
+            story.append(Spacer(1,12))
+
+            story.append(Paragraph(
+            f"Adapter Removed Reads: {adapter_removed}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Total Reads: {read_count}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Minimum Length: {min(lengths)}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Maximum Length: {max(lengths)}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Average Length: {round(np.mean(lengths),2)}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Average GC Content: {round(avg_gc,2)}",
+            styles['Normal']))
+
+            story.append(Paragraph(
+            f"Average Quality Score: {round(avg_quality,2)}",
+            styles['Normal']))
+
+            story.append(Spacer(1,20))
+
+            story.append(Image("quality.png",350,180))
+            story.append(Spacer(1,15))
+
+            story.append(Image("length.png",350,180))
+            story.append(Spacer(1,15))
+
+            story.append(Image("nucleotide.png",350,180))
+
+            story.append(PageBreak())
+
+            story.append(Paragraph(
+            f"Duplicate Reads: {duplicates}",
+            styles['Normal']))
+
+            story.append(Spacer(1,15))
+
+            story.append(Paragraph("Variant Calling",
+            styles['Heading2']))
+
+            for v in variants[:20]:
+                story.append(Paragraph(v,styles['Normal']))
+
+            buffer=io.BytesIO()
+            doc=SimpleDocTemplate(buffer,pagesize=A4)
+            doc.build(story)
+
+            pdf=buffer.getvalue()
+            buffer.close()
+
+            return pdf
+
+
+        pdf=generate_pdf()
+
+        st.download_button(
+        "Download Full Report PDF",
+        data=pdf,
+        file_name="Smart_DNA_Report.pdf",
+        mime="application/pdf"
+        )
+
+
 # About
 
 with tabs[2]:
@@ -286,15 +369,14 @@ with tabs[2]:
     st.title("About")
 
     st.write("""
-Smart DNA Quality Analyzer is a bioinformatics application 
-developed for DNA sequencing quality assessment.
+Smart DNA Quality Analyzer is developed for DNA sequencing quality analysis.
 
-• Performs FASTQ file quality analysis  
-• Detects sequencing errors  
-• Removes adapter contamination  
-• Calculates GC content  
-• Identifies sequence variations  
-• Generates graphical reports  
+• FASTQ file quality analysis  
+• Adapter removal  
+• GC content calculation  
+• Variant detection  
+• Graph visualization  
+• Report generation  
 """)
 
 
@@ -308,9 +390,9 @@ with tabs[3]:
 
     st.write("""
 • Upload FASTQ file  
-• Extract DNA sequences  
-• Remove adapter sequences  
-• Perform quality analysis  
+• Extract sequences  
+• Remove adapters  
+• Perform analysis  
 • Detect variants  
 • Generate report  
 """)
@@ -325,12 +407,12 @@ with tabs[4]:
     st.title("Applications")
 
     st.write("""
-• DNA sequencing quality control  
-• Genomics research analysis  
-• Mutation detection studies  
-• Clinical genomics research  
-• Microbial genome analysis  
-• Bioinformatics learning tool  
+• DNA quality control  
+• Genomics research  
+• Mutation detection  
+• Clinical genomics  
+• Microbial genomics  
+• Bioinformatics learning  
 """)
 
 
@@ -348,7 +430,7 @@ with tabs[5]:
 • Cloud deployment  
 • Multi sample comparison  
 • Advanced variant detection  
-• Real time sequencing analysis  
+• Real time sequencing  
 """)
 
 
@@ -363,9 +445,11 @@ with tabs[6]:
     st.subheader("Nupur Nisal")
     st.write("Bioinformatics Developer")
     st.write("3522511009@gmail.com")
+    st.markdown("[LinkedIn](https://www.linkedin.com/in/nupur-nisal-543b46313)")
 
     st.markdown("---")
 
     st.subheader("Vinita Salvi")
     st.write("Bioinformatics Analyst")
     st.write("3522511010@gmail.com")
+    st.markdown("[LinkedIn](https://www.linkedin.com/in/vinita-salvi27)")
